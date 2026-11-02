@@ -4,10 +4,10 @@ import { useFetch, go } from '../hooks.js'
 import { Spinner, ErrorBox } from '../components/ui.jsx'
 
 const STEPS = [
-  { key: 'soul', label: 'Reading my soul', sub: 'Remembering who I am' },
-  { key: 'memory', label: 'Recalling what I know about you', sub: 'Profile + relevant memories' },
-  { key: 'research', label: 'Searching the web', sub: 'Real options, real prices' },
-  { key: 'plans', label: 'Crafting your plans', sub: 'Different strategies, honest trade-offs' },
+  { key: 'soul', label: 'Waking up', sub: '' },
+  { key: 'memory', label: 'Recalling you', sub: '' },
+  { key: 'research', label: 'Searching the web', sub: '' },
+  { key: 'plans', label: 'Drafting plans', sub: '' },
 ]
 const ORDER = ['queued', 'soul', 'memory', 'research', 'plans', 'done']
 
@@ -42,15 +42,8 @@ export default function RequestView({ id }) {
       <p className="eyebrow">{req.kind === 'goal' ? '🎯 Goal' : '🏎️ Activity'}</p>
       <h1>{title}</h1>
 
-      {req.memories_used?.length > 0 && (
-        <div className="memory-strip">
-          <b>🧠 Ember remembered</b>
-          <ul>
-            {req.memories_used.slice(0, 4).map((m) => (
-              <li key={m.id}>{m.text}</li>
-            ))}
-          </ul>
-        </div>
+      {req.memories_used?.length > 0 && req.status !== 'ready' && (
+        <p className="muted small">🧠 Using what I know about you · {req.memories_used.length} memories</p>
       )}
 
       {req.status === 'failed' && <ErrorBox>{req.error || 'Something went wrong.'}</ErrorBox>}
@@ -65,7 +58,7 @@ export default function RequestView({ id }) {
                 <span className="step-dot">{state === 'done' ? '✓' : state === 'active' ? <i className="pulse" /> : ''}</span>
                 <div>
                   <b>{s.label}</b>
-                  <span className="muted small">{s.sub}</span>
+                  
                 </div>
               </li>
             )
@@ -76,8 +69,7 @@ export default function RequestView({ id }) {
       {req.status === 'ready' && (
         <>
           {req.note && <div className="banner inline">{req.note}</div>}
-          <h2 className="section-title">Pick your path</h2>
-          <p className="muted">I found {req.plans.length} different ways to do this. Each one trades something for something else.</p>
+          <h2 className="section-title">Pick a path</h2>
           {chooseErr && <ErrorBox>{chooseErr}</ErrorBox>}
           <div className="plan-grid">
             {req.plans.map((p) => (
@@ -104,32 +96,25 @@ function PlanCard({ plan, onChoose, busy, disabled, existing }) {
         <h3>{plan.title}</h3>
         <p className="tagline">{plan.tagline}</p>
       </header>
+      <p>{plan.summary}</p>
       <dl className="facts">
         <div><dt>💰 Cost</dt><dd>{plan.cost_estimate}</dd></div>
         <div><dt>⏱️ Time</dt><dd>{plan.time_commitment}</dd></div>
-        <div><dt>📅 Timeline</dt><dd>{plan.timeline}</dd></div>
-        <div><dt>🎚️ Difficulty</dt><dd>{plan.difficulty}</dd></div>
+        <div><dt>🎚️ Level</dt><dd>{plan.difficulty}</dd></div>
       </dl>
-      <p>{plan.summary}</p>
-      {plan.highlights?.length > 0 && (
-        <ul className="ticks">
-          {plan.highlights.map((h, i) => <li key={i}>{h}</li>)}
-        </ul>
-      )}
-      {plan.why_it_fits && <p className="why"><b>Why it fits you:</b> {plan.why_it_fits}</p>}
-      {plan.tradeoffs && <p className="trade"><b>Trade-off:</b> {plan.tradeoffs}</p>}
+      {plan.why_it_fits && <p className="why">{plan.why_it_fits}</p>}
       {plan.sources?.length > 0 && (
         <div className="sources">
-          {plan.sources.map((s) => (
+          {plan.sources.slice(0, 2).map((s) => (
             <a key={s.url} href={s.url} target="_blank" rel="noreferrer">↗ {s.title}</a>
           ))}
         </div>
       )}
       {existing ? (
-        <a className="btn primary" href={`#/artifact/${existing}`}>Open your plan →</a>
+        <a className="btn primary" href={`#/artifact/${existing}`}>Open →</a>
       ) : (
         <button className="btn primary" disabled={disabled} onClick={onChoose}>
-          {busy ? 'Starting…' : 'Choose this plan'}
+          {busy ? 'Starting…' : 'Choose'}
         </button>
       )}
     </article>

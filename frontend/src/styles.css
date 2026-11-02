@@ -30,9 +30,8 @@ code { background: var(--panel2); padding: .1em .4em; border-radius: 6px; font-s
 
 .app { display: flex; flex-direction: column; min-height: 100vh; }
 .topbar { display: flex; align-items: center; gap: 1.5rem; padding: .8rem 1.5rem; border-bottom: 1px solid var(--line); background: #0c0e1dcc; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
-.brand { font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--text); }
+.brand { display: inline-flex; align-items: center; gap: .55rem; font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--text); }
 .brand:hover { text-decoration: none; }
-.flame { filter: drop-shadow(0 0 8px #ff7a59); }
 .topbar nav { display: flex; gap: .3rem; flex: 1; }
 .topbar nav a { color: var(--muted); padding: .4rem .8rem; border-radius: 999px; font-weight: 500; }
 .topbar nav a.active, .topbar nav a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
@@ -167,6 +166,7 @@ textarea.input { resize: vertical; }
 .check.done .box { background: var(--good); border-color: var(--good); }
 .check-text { flex: 1; display: grid; gap: .15rem; }
 .check.done .check-text > b, .check.done .strike { text-decoration: line-through; text-decoration-color: #ffffff55; }
+.quest-link { font-size: .82rem; margin-left: 2.1rem; display: inline-block; }
 .quest-desc { font-size: .92rem; color: #cfd2ee; }
 .xp-pill { background: #3a2c07; color: var(--xp); font-size: .75rem; font-weight: 700; padding: .15rem .55rem; border-radius: 99px; white-space: nowrap; margin-top: 2px; }
 .ach { display: flex; gap: .7rem; padding: .45rem 0; opacity: .5; align-items: flex-start; }

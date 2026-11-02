@@ -43,7 +43,7 @@ function GoalForm() {
       <p className="eyebrow">🎯 New goal</p>
       <h1>What do you want to achieve?</h1>
 
-      <Field label="Your goal" hint="Be specific — a finish line, not a topic.">
+      <Field label="Your goal" hint="A finish line, not a topic.">
         <input
           className="input big" autoFocus required value={f.goal}
           onChange={(e) => set('goal')(e.target.value)}
@@ -51,7 +51,7 @@ function GoalForm() {
         />
       </Field>
 
-      <Field label="Duration" hint="How long a journey is this?">
+      <Field label="Duration">
         <Chips value={f.duration} onChange={set('duration')} options={[
           { value: 'short', label: 'Short term', hint: 'Weeks to ~3 months', icon: '⚡' },
           { value: 'long', label: 'Long term', hint: '6+ months', icon: '🏔️' },
@@ -87,7 +87,7 @@ function GoalForm() {
         ]} />
       </Field>
 
-      <Field label="Goal details" hint="Anything Ember should know — deadlines, constraints, what you've tried.">
+      <Field label="Goal details" hint="Optional.">
         <textarea className="input" rows={3} value={f.details}
           onChange={(e) => set('details')(e.target.value)} placeholder="e.g. I work nights, and I want to be done before next summer." />
       </Field>
@@ -95,12 +95,12 @@ function GoalForm() {
       <label className="toggle">
         <input type="checkbox" checked={f.gamify} onChange={(e) => set('gamify')(e.target.checked)} />
         <span className="switch" />
-        <span><b>Gamify it</b> — levels, quests, XP and boss fights</span>
+        <span><b>Gamify it</b></span>
       </label>
 
       {error && <ErrorBox>{error}</ErrorBox>}
       <button className="btn primary" disabled={busy || !f.goal.trim()}>
-        {busy ? 'Sending to Ember…' : 'Find my plans →'}
+        {busy ? 'Sending to Frontier…' : 'Find my plans →'}
       </button>
     </form>
   )
@@ -141,7 +141,7 @@ function ActivityForm() {
           onChange={(e) => set('distance_miles')(Number(e.target.value))} className="range" />
       </Field>
 
-      <Field label="Group size" hint="How many people will be attending?">
+      <Field label="Group size" >
         <div className="stepper">
           <button type="button" onClick={() => set('group_size')(Math.max(1, f.group_size - 1))}>−</button>
           <b>{f.group_size}</b>
@@ -149,14 +149,14 @@ function ActivityForm() {
         </div>
       </Field>
 
-      <Field label="More info" hint="Ages, skill levels, budget per person, dates — anything useful.">
+      <Field label="More info" hint="Optional: ages, dates, budget.">
         <textarea className="input" rows={3} value={f.more_info}
           onChange={(e) => set('more_info')(e.target.value)} placeholder="e.g. Birthday for a 16-year-old, Saturday afternoon, under $50 each." />
       </Field>
 
       {error && <ErrorBox>{error}</ErrorBox>}
       <button className="btn primary" disabled={busy || !f.recreation.trim()}>
-        {busy ? 'Sending to Ember…' : 'Find my plans →'}
+        {busy ? 'Sending to Frontier…' : 'Find my plans →'}
       </button>
     </form>
   )

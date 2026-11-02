@@ -1,4 +1,4 @@
-"""Ember: soul + memory + web research (RAG) + plan / artifact generation.
+"""Frontier: soul + memory + web research (RAG) + plan / artifact generation.
 
 Pipeline:  request -> read soul -> recall memory -> search web -> craft plans
            -> user picks -> build artifact (quest board / activity plan)
@@ -168,17 +168,13 @@ def research_web(kind, params, ctx):
 PLAN_SHAPE = """{
  "plans": [
   {
-   "title": "short, memorable name for this path",
-   "tagline": "one punchy line",
-   "approach": "1-2 sentences: what makes this path different from the others",
-   "summary": "3-5 sentences describing the plan concretely",
-   "highlights": ["3-5 short bullets"],
-   "cost_estimate": "e.g. $150-$300 total",
-   "time_commitment": "e.g. 5 hrs/week",
-   "timeline": "e.g. 3 months to first milestone",
+   "title": "2-4 words",
+   "tagline": "max 8 words",
+   "summary": "ONE sentence, max 25 words",
+   "cost_estimate": "short, e.g. $150-300",
+   "time_commitment": "short, e.g. 5 hrs/week",
    "difficulty": "Easy | Moderate | Hard",
-   "why_it_fits": "explicitly tie this to the user's profile, memories and answers",
-   "tradeoffs": "the honest downside",
+   "why_it_fits": "max 12 words, tied to this user",
    "source_refs": [0, 2]
   }
  ]
@@ -190,76 +186,72 @@ def generate_plans(kind, params, ctx, research_text, sources):
     user = (
         f"{ctx}\n\n# WEB RESEARCH NOTES\n{research_text or '(none)'}\n\n# SOURCES\n{src}\n\n"
         "# TASK\nCraft 3 genuinely different plans (never fewer than 2) for this user. They must differ "
-        "in strategy and trade-offs, not just price. Use only facts from the research notes; flag "
-        "anything unverified. `source_refs` are indexes into SOURCES that back the plan.\n"
+        "in strategy and trade-offs, not just price. Use only facts from the research notes. "
+        "BE EXTREMELY CONCISE: short phrases, obey every word limit, no filler. "
+        "`source_refs` are indexes into SOURCES that back the plan.\n"
         f"Return ONLY JSON in exactly this shape:\n{PLAN_SHAPE}"
     )
-    data = json_call(user, max_tokens=5000)
+    data = json_call(user, max_tokens=2500)
     plans = [p for p in data.get("plans", []) if isinstance(p, dict) and p.get("title")]
     if len(plans) < 2:
         raise RuntimeError("model returned fewer than 2 plans")
     out = []
-    for p in plans[:4]:
+    for p in plans[:3]:
         refs = [i for i in p.get("source_refs", []) if isinstance(i, int) and 0 <= i < len(sources)]
-        p["sources"] = [sources[i] for i in refs] or sources[:2]
+        p["sources"] = [sources[i] for i in refs][:2] or sources[:1]
         p.pop("source_refs", None)
-        p.setdefault("highlights", [])
         out.append(p)
     return out
 
 
 # ------------------------------------------------------------------ artifacts
 GOAL_SHAPE = """{
- "title": "name of the quest line",
- "hero_class": "fun title for the user, e.g. 'Apprentice Navigator'",
- "intro": "2-3 motivating sentences in Ember's voice",
+ "title": "max 6 words",
+ "intro": "ONE sentence",
  "levels": [
-  {"name": "Level name", "description": "what this level is about", "boss": "the end-of-level challenge",
-   "quests": [
-    {"title": "...", "description": "concrete what-to-do", "xp": 20, "est_time": "2 hrs",
-     "type": "learn | practice | milestone | boss",
-     "resources": [{"title": "...", "url": "https://..."}]}
-   ]}
+  {"name": "2-3 words",
+   "quests": [{"title": "max 8 words", "detail": "max 12 words, concrete", "xp": 20, "url": "optional https link from SOURCES"}]}
  ],
- "achievements": [{"name": "...", "description": "how to unlock", "icon": "emoji"}],
- "weekly_rhythm": ["e.g. Mon: 30 min drills"],
- "budget_breakdown": [{"label": "...", "cost": "$..."}],
- "tips": ["..."]
+ "achievements": [{"name": "2-3 words", "icon": "emoji"}],
+ "budget": [{"label": "...", "cost": "$..."}]
 }"""
 
 ACTIVITY_SHAPE = """{
- "title": "name of the outing",
- "intro": "2-3 fun sentences in Ember's voice",
- "best_time": "when to go and why",
- "venues": [{"name": "...", "address": "...", "url": "https://...", "price": "...", "why": "..."}],
- "itinerary": [{"time": "10:00", "title": "...", "details": "..."}],
+ "title": "max 6 words",
+ "intro": "ONE sentence",
+ "venues": [{"name": "...", "address": "short", "url": "https://...", "price": "...", "why": "max 10 words"}],
+ "itinerary": [{"time": "10:00", "title": "max 6 words"}],
  "budget": [{"label": "...", "cost": "$..."}],
  "budget_total": "$...",
- "before_you_go": ["booking / logistics tasks"],
- "packing": ["items to bring"],
- "safety": ["age limits, waivers, gear, rules"],
- "group_tips": ["tips for this group size"],
- "backup_plan": "what to do if weather/availability fails",
- "side_quests": [{"title": "optional fun challenge", "xp": 25}]
+ "before_you_go": ["booking actions, max 4, each max 8 words"],
+ "packing": ["max 6 short items"],
+ "safety": ["max 3, each max 10 words"]
 }"""
+
+NO_HOMEWORK = (
+    "The user will NOT do any more research. You must resolve every detail NOW from the research notes "
+    "(real names, prices, links, times). Never write steps like research, look up, find out, check, "
+    "confirm, decide or choose; name the specific thing instead. If a fact is unknown, leave it out. "
+    "BE EXTREMELY CONCISE: short phrases, obey every word limit, no paragraphs, no filler."
+)
 
 
 def generate_artifact(kind, params, ctx, plan, research_text, sources):
     src = "\n".join(f"[{i}] {s['title']} - {s['url']}" for i, s in enumerate(sources)) or "(none)"
     shape = GOAL_SHAPE if kind == "goal" else ACTIVITY_SHAPE
     extra = (
-        "Build 4-6 levels, 3-5 quests each, XP scaled 10-100 (bosses bigger), a gentle first level, "
-        "and a final boss that proves the goal. Use game language if gamify is YES."
+        "3-4 levels, 2-3 quests each, XP 10-100 (final quest biggest), 3 achievements, max 4 budget rows. "
+        "Light game language only."
         if kind == "goal"
-        else "Build a realistic timeline sized for the group, with budget math for the whole group."
+        else "1-3 venues, 3-6 itinerary steps, budget for the whole group, max 4 budget rows."
     )
     user = (
-        f"{ctx}\n\n# CHOSEN PLAN\n{json.dumps(plan, indent=1)}\n\n# WEB RESEARCH NOTES\n{research_text or '(none)'}\n\n"
-        f"# SOURCES\n{src}\n\n# TASK\nBuild the final deliverable for the chosen plan. {extra} "
+        f"{ctx}\n\n# CHOSEN PLAN\n{json.dumps(plan)}\n\n# WEB RESEARCH NOTES\n{research_text or '(none)'}\n\n"
+        f"# SOURCES\n{src}\n\n# TASK\nBuild the final deliverable for the chosen plan. {extra} {NO_HOMEWORK} "
         "Only use URLs that appear in SOURCES or the research notes; otherwise leave url empty.\n"
         f"Return ONLY JSON in exactly this shape:\n{shape}"
     )
-    return finalize_artifact(kind, json_call(user, max_tokens=8000))
+    return finalize_artifact(kind, json_call(user, max_tokens=4000))
 
 
 def _int(v, d=10):
@@ -286,14 +278,10 @@ def finalize_artifact(kind, c):
         for i, t in enumerate(c.get("before_you_go", [])):
             items.append({"id": f"b{i}", "text": t, "group": "Before you go", "xp": 10})
         for i, t in enumerate(c.get("packing", [])):
-            items.append({"id": f"p{i}", "text": t, "group": "Pack list", "xp": 5})
+            items.append({"id": f"p{i}", "text": t, "group": "Pack", "xp": 5})
         c["checklist"] = items
         for it in items:
             xp_map[it["id"]] = it["xp"]
-        for i, s in enumerate(c.get("side_quests", [])):
-            s["id"] = f"s{i}"
-            s["xp"] = _int(s.get("xp"), 25)
-            xp_map[s["id"]] = s["xp"]
     c["xp_map"] = xp_map
     c["total_xp"] = sum(xp_map.values()) + (
         sum(l.get("bonus_xp", 0) for l in c.get("levels", [])) if kind == "goal" else 0
@@ -320,116 +308,67 @@ def _cost(params):
 def offline_plans(kind, p):
     if kind == "goal":
         g = p.get("goal", "your goal")
-        lvl = _lab("level", p.get("level"))
         base = [
-            ("The Fast Track", "Maximum momentum, minimum dithering.",
-             f"Front-load daily practice on {g} with a tight feedback loop and a hard deadline.",
-             "10-15 hrs/week", "6-10 weeks to first milestone", "Hard"),
-            ("The Steady Climb", "Small daily wins that compound.",
-             f"A sustainable weekly rhythm for {g} that fits around real life and avoids burnout.",
-             "4-6 hrs/week", "3-4 months to first milestone", "Moderate"),
-            ("The Guild Route", "Learn with people who have already done it.",
-             f"Join a club, coach, or course for {g} so accountability and expert feedback do the heavy lifting.",
-             "5-8 hrs/week", "3 months to first milestone", "Moderate"),
+            ("Fast Track", "Maximum momentum.", f"Daily focused practice toward {g}, with a hard deadline.", "10-15 hrs/week", "Hard"),
+            ("Steady Climb", "Small wins that compound.", f"A sustainable weekly rhythm toward {g}.", "4-6 hrs/week", "Moderate"),
+            ("Guild Route", "Learn from people who've done it.", f"A club, coach or course to get you to {g}.", "5-8 hrs/week", "Moderate"),
         ]
         return [
-            {
-                "title": t, "tagline": tag, "approach": appr,
-                "summary": f"{appr} Calibrated for a {lvl} starting point and a {_lab('budget', p.get('budget')).lower()} budget.",
-                "highlights": ["Clear weekly targets", "Measurable milestones", "Built-in review checkpoints"],
-                "cost_estimate": _cost(p), "time_commitment": tm, "timeline": tl, "difficulty": diff,
-                "why_it_fits": f"Matches your {_lab('time_investment', p.get('time_investment')).lower()} pace and {lvl.lower()} level.",
-                "tradeoffs": "Offline demo mode: no live web research, so verify specific costs and providers yourself.",
-                "sources": [],
-            }
-            for t, tag, appr, tm, tl, diff in base
+            {"title": t, "tagline": tag, "summary": s, "cost_estimate": _cost(p), "time_commitment": tm,
+             "difficulty": d, "why_it_fits": f"Fits your {_lab('level', p.get('level')).lower()} level.", "sources": []}
+            for t, tag, s, tm, d in base
         ]
     r = p.get("recreation", "an activity")
     n = p.get("group_size", 1)
     base = [
-        ("Budget Crew Day", "Max fun per dollar.", f"A no-frills {r} session for {n} using off-peak pricing and group deals.", "$", "Easy"),
-        ("The Classic Outing", "The well-trodden favorite.", f"A well-rated local {r} experience with food and downtime built around it for {n}.", "$$", "Easy"),
-        ("The VIP Experience", "Go big, make it a story.", f"A premium {r} package for {n} with guides/extras and a celebratory finish.", "$$$", "Moderate"),
+        ("Budget Crew Day", "Most fun per dollar.", f"Off-peak {r} for {n}, using group deals.", "$"),
+        ("Classic Outing", "The local favorite.", f"A well-rated {r} spot for {n}, plus food.", "$$"),
+        ("VIP Experience", "Go big.", f"A premium {r} package for {n}.", "$$$"),
     ]
     return [
-        {
-            "title": t, "tagline": tag, "approach": appr, "summary": appr,
-            "highlights": ["Group-friendly", "Clear booking steps", "Weather backup included"],
-            "cost_estimate": f"{price} per person", "time_commitment": "Half day to full day",
-            "timeline": "Book 1-2 weeks ahead", "difficulty": diff,
-            "why_it_fits": f"Within {p.get('distance_miles', 'your')} miles, {_lab('location', p.get('location')).lower()}, for {n} people.",
-            "tradeoffs": "Offline demo mode: no live venue search, so verify venues, prices and availability.",
-            "sources": [],
-        }
-        for t, tag, appr, price, diff in base
+        {"title": t, "tagline": tag, "summary": s, "cost_estimate": f"{price} per person",
+         "time_commitment": "Half day", "difficulty": "Easy",
+         "why_it_fits": f"Within {p.get('distance_miles', 'your')} miles, for {n} people.", "sources": []}
+        for t, tag, s, price in base
     ]
 
 
 def offline_artifact(kind, p, plan):
     if kind == "goal":
         g = p.get("goal", "your goal")
-        names = [
-            ("Base Camp", "Learn the lay of the land.", [
-                ("Define what 'done' looks like", "Write one sentence describing the finish line and a target date.", "learn", 15, "30 min"),
-                ("Gather your gear and resources", f"List what you need to start {g}; pick one primary learning resource.", "learn", 20, "1 hr"),
-                ("Schedule your first 4 weeks", "Block recurring time on your calendar and tell one person your plan.", "practice", 25, "30 min"),
-            ]),
-            ("First Blood", "Get your first real reps in.", [
-                ("Complete your first practice session", "Do a deliberately easy first session and note what felt hard.", "practice", 30, "1 hr"),
-                ("Learn the core fundamentals", f"Work through the core fundamentals of {g}.", "learn", 35, "4 hrs"),
-                ("Find a feedback source", "Join a community, find a coach, or share progress weekly with a friend.", "practice", 30, "1 hr"),
-            ]),
-            ("Rising Challenger", "Stretch beyond comfortable.", [
-                ("Hit a 2-week streak", "Show up on schedule 10 times out of 14 days.", "practice", 50, "2 weeks"),
-                ("Do a real-world attempt", f"Test your {g} skills in a real situation, however small.", "milestone", 60, "2 hrs"),
-                ("Review and adjust", "Look at what's working and re-plan the next month.", "learn", 30, "1 hr"),
-            ]),
-            ("Boss Fight", "Prove it.", [
-                ("Prepare for the final test", f"Do a full dress rehearsal of your {g} milestone.", "practice", 60, "3 hrs"),
-                ("Defeat the boss", f"Complete the main milestone of {g}.", "boss", 100, "1 day"),
-            ]),
+        lv = [
+            ("Base Camp", [("Pick your main learning resource", "One book, course or coach.", 15),
+                           ("Block 4 weekly sessions", "Add them to your calendar.", 20)]),
+            ("First Reps", [("Complete your first session", "Keep it easy; just start.", 30),
+                            ("Finish the fundamentals", f"Core basics of {g}.", 35),
+                            ("Join a community", "Club, forum or study group.", 30)]),
+            ("Final Boss", [("Do a full dress rehearsal", f"Simulate the real {g} milestone.", 60),
+                            ("Complete the milestone", f"Achieve: {g}.", 100)]),
         ]
         c = {
-            "title": f"{plan.get('title', 'Your plan')}: {g}",
-            "hero_class": "Rising Adventurer",
-            "intro": "Offline demo mode: this is a template quest line. Add an ANTHROPIC_API_KEY for a researched, personalized one.",
-            "levels": [
-                {"name": f"Level {i}: {n}", "description": d, "boss": "Finish every quest to clear the level.",
-                 "quests": [{"title": t, "description": desc, "type": ty, "xp": xp, "est_time": et, "resources": []}
-                            for t, desc, ty, xp, et in qs]}
-                for i, (n, d, qs) in enumerate(names, 1)
-            ],
-            "achievements": [
-                {"name": "First Step", "description": "Complete your first quest.", "icon": "🏁"},
-                {"name": "On a Roll", "description": "Clear two levels.", "icon": "🔥"},
-                {"name": "Boss Slayer", "description": "Defeat the final boss.", "icon": "🏆"},
-            ],
-            "weekly_rhythm": ["Mon: plan the week", "Wed: main practice block", "Sat: longer session", "Sun: review"],
-            "budget_breakdown": [{"label": "Estimated total", "cost": plan.get("cost_estimate", "varies")}],
-            "tips": ["Start smaller than feels necessary.", "Track streaks, not perfection."],
+            "title": f"{plan.get('title', 'Your plan')}",
+            "intro": "Offline demo template. Add an API key for a researched plan.",
+            "levels": [{"name": n, "quests": [{"title": t, "detail": d, "xp": x} for t, d, x in qs]} for n, qs in lv],
+            "achievements": [{"name": "First Step", "icon": "🏁"}, {"name": "On a Roll", "icon": "🔥"}, {"name": "Boss Slayer", "icon": "🏆"}],
+            "budget": [{"label": "Estimated total", "cost": plan.get("cost_estimate", "varies")}],
         }
         return finalize_artifact("goal", c)
     r = p.get("recreation", "the activity")
     c = {
-        "title": f"{plan.get('title', 'Your outing')}: {r}",
-        "intro": "Offline demo mode: template outing. Add an ANTHROPIC_API_KEY for real venues and live prices.",
-        "best_time": "Weekday mornings are usually cheapest and quietest.",
+        "title": f"{plan.get('title', 'Your outing')}",
+        "intro": "Offline demo template. Add an API key for real venues and prices.",
         "venues": [],
         "itinerary": [
-            {"time": "09:30", "title": "Meet up", "details": "Gather the group and confirm everyone has what they need."},
-            {"time": "10:00", "title": f"Start {r}", "details": "Check-in, safety briefing, gear up."},
-            {"time": "12:30", "title": "Lunch break", "details": "Refuel and swap highlights."},
-            {"time": "14:00", "title": "Second session", "details": "Run it back, now that everyone's warmed up."},
-            {"time": "16:00", "title": "Wrap up", "details": "Photos, split costs, plan the rematch."},
+            {"time": "10:00", "title": "Arrive and gear up"},
+            {"time": "10:30", "title": f"First {r} session"},
+            {"time": "12:30", "title": "Lunch"},
+            {"time": "14:00", "title": "Second session"},
         ],
-        "budget": [{"label": "Activity (per person)", "cost": plan.get("cost_estimate", "varies")}, {"label": "Food & drinks", "cost": "$15-$30 pp"}],
-        "budget_total": "varies",
-        "before_you_go": ["Confirm venue hours and availability", "Book for your group size", "Check age/waiver requirements", "Share the plan and meetup point"],
-        "packing": ["Water", "Weather-appropriate clothes", "Closed-toe shoes", "Phone charger", "Cash/card"],
-        "safety": ["Follow the venue's safety briefing", "Use all required protective gear", "Check minimum age and health restrictions"],
-        "group_tips": ["Pick one organizer for bookings", "Agree on a cost split up front"],
-        "backup_plan": "If weather or availability fails, move to an indoor alternative nearby.",
-        "side_quests": [{"title": "Group photo at the start and end", "xp": 15}, {"title": "Try something nobody has done before", "xp": 30}],
+        "budget": [{"label": "Activity (per person)", "cost": plan.get("cost_estimate", "varies")}],
+        "budget_total": "",
+        "before_you_go": ["Book for your group size", "Share the meetup point"],
+        "packing": ["Water", "Closed-toe shoes", "Phone charger"],
+        "safety": ["Follow the venue's safety briefing", "Wear all required gear"],
     }
     return finalize_artifact("activity", c)
 

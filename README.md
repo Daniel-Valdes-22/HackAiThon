@@ -1,8 +1,8 @@
-# 🔥 Ember — HackAiThon
+# 🔥 Frontier — HackAiThon
 
-Tell Ember a **goal** (chess rating, pilot's license, CDL…) or an **activity** (go-karts, paintball,
-off-roading, hunting…). Ember reads its **soul**, recalls what it **remembers about you**, **searches the
-web**, and brings back 2–3 genuinely different **plans**. Pick one and Ember builds the deliverable:
+Tell Frontier a **goal** (chess rating, pilot's license, CDL…) or an **activity** (go-karts, paintball,
+off-roading, hunting…). Frontier reads its **soul**, recalls what it **remembers about you**, **searches the
+web**, and brings back 2–3 genuinely different **plans**. Pick one and Frontier builds the deliverable:
 a gamified **quest line** (levels, quests, XP, boss fights, achievements) for goals, or a full
 **outing plan** (venues, itinerary, budget, checklist, safety, side quests) for activities.
 
@@ -39,8 +39,8 @@ request ──► read soul.md ──► recall memory (SQLite, relevance + rece
 
 | Piece | Where |
 |---|---|
-| **Soul** — who Ember is (identity, voice, values, rules). Loaded into every call. Edit it! | `backend/soul.md` |
-| **Memory** — profile + memory notes. Top matches go into every prompt. Ember writes memories when you choose a plan or clear a level; you can add/delete them on the *Me & Memory* page. | `backend/db.py` (`memories`) |
+| **Soul** — who Frontier is (identity, voice, values, rules). Loaded into every call. Edit it! | `backend/soul.md` |
+| **Memory** — profile + memory notes. Top matches go into every prompt. Frontier writes memories when you choose a plan or clear a level; you can add/delete them on the *Me & Memory* page. | `backend/db.py` (`memories`) |
 | **RAG / research** — live web search, sources attached to plans | `backend/ai.py` (`research_web`) |
 | **Plans & artifacts** — JSON-schema prompts, validation, XP maps | `backend/ai.py` |
 | **Pipeline & API** — background tasks, status polling | `backend/main.py` |

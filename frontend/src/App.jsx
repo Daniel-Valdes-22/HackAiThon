@@ -6,6 +6,7 @@ import Intake from './views/Intake.jsx'
 import RequestView from './views/RequestView.jsx'
 import ArtifactView from './views/ArtifactView.jsx'
 import Me from './views/Me.jsx'
+import { Logo } from './components/ui.jsx'
 
 export default function App() {
   const parts = useRoute()
@@ -26,7 +27,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <a href="#/" className="brand">
-          <span className="flame">🔥</span> Ember
+          <Logo /> Frontier
         </a>
         <nav>
           <a href="#/" className={!page ? 'active' : ''}>Dashboard</a>
@@ -49,7 +50,7 @@ export default function App() {
         </div>
       )}
       <main className="page">{view}</main>
-      <footer className="foot">Ember remembers · plans from live web research · HackAiThon</footer>
+      <footer className="foot">Frontier · HackAiThon</footer>
     </div>
   )
 }

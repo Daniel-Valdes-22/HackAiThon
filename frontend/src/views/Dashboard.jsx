@@ -17,13 +17,10 @@ export default function Dashboard() {
         <div>
           <p className="eyebrow">Welcome back</p>
           <h1>Hey {name}. What are we going after?</h1>
-          <p className="muted">
-            Tell me your aim or your itch. I'll check what I remember about you, search the web, and
-            bring back real plans to pick from.
-          </p>
+          <p className="muted">Pick one. I'll research it and bring back plans.</p>
           {!profile?.name && (
             <p className="nudge">
-              👋 I don't know you yet — <a href="#/me">introduce yourself</a> so my plans fit you.
+              👋 <a href="#/me">Tell me about you</a> so plans fit.
             </p>
           )}
         </div>
@@ -45,13 +42,13 @@ export default function Dashboard() {
         <button className="choice goal" onClick={() => go('/new/goal')}>
           <span className="choice-emoji">🎯</span>
           <h2>I have a Goal</h2>
-          <p>A specific aim — chess rating, pilot's license, CDL, a marathon. I build a gamified quest line.</p>
+          <p>Chess rating, pilot's license, CDL…</p>
           <span className="choice-cta">Start a goal →</span>
         </button>
         <button className="choice activity" onClick={() => go('/new/activity')}>
           <span className="choice-emoji">🏎️</span>
           <h2>I want an Activity</h2>
-          <p>Something to go do — off-roading, paintball, go-karts, hunting. I find real places and plan the day.</p>
+          <p>Off-roading, paintball, go-karts…</p>
           <span className="choice-cta">Plan an activity →</span>
         </button>
       </section>
@@ -89,7 +86,7 @@ export default function Dashboard() {
                 <div className="li-main">
                   <b>{r.kind === 'goal' ? r.params.goal : r.params.recreation}</b>
                   <span className="muted small">
-                    {r.status === 'ready' ? 'Plans ready — choose one' : 'Ember is working…'}
+                    {r.status === 'ready' ? 'Plans ready — choose one' : 'Frontier is working…'}
                   </span>
                 </div>
               </a>

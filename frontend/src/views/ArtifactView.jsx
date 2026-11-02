@@ -4,7 +4,7 @@ import { useFetch } from '../hooks.js'
 import { Bar, Check, Spinner, ErrorBox } from '../components/ui.jsx'
 
 export default function ArtifactView({ id }) {
-  const { data: art, setData, error } = useFetch(() => api.artifact(id), [id], {
+  const { data: art, error } = useFetch(() => api.artifact(id), [id], {
     interval: 2000,
     until: (d) => d.status !== 'building',
   })
@@ -17,18 +17,17 @@ export default function ArtifactView({ id }) {
   }, [art?.status, art?.id])
 
   if (error && !art) return <ErrorBox>{error}</ErrorBox>
-  if (!art || art.status === 'building') {
-    return <Spinner label="Ember is building your plan — researching details and laying out every step…" />
-  }
+  if (!art || art.status === 'building') return <Spinner label="Building your plan…" />
   if (art.status === 'failed') return <ErrorBox>{art.error || 'Could not build this plan.'}</ErrorBox>
 
   const c = art.content
   const xpMap = c.xp_map || {}
   const earned = computeXp(art.kind, c, done)
+  const pct = c.total_xp ? (earned / c.total_xp) * 100 : 0
 
   const flash = (msg) => {
     setToast(msg)
-    setTimeout(() => setToast(null), 2600)
+    setTimeout(() => setToast(null), 2200)
   }
 
   const toggle = (itemId, on) => {
@@ -39,7 +38,7 @@ export default function ArtifactView({ id }) {
       if (art.kind === 'goal') {
         const lvl = c.levels.find((l) => l.quests.some((q) => q.id === itemId))
         if (lvl && lvl.quests.every((q) => next.includes(q.id))) {
-          setTimeout(() => flash(`🏆 ${lvl.name} cleared! +${lvl.bonus_xp} bonus XP`), 700)
+          setTimeout(() => flash(`🏆 ${lvl.name} cleared · +${lvl.bonus_xp} XP`), 700)
         }
       }
     }
@@ -49,18 +48,16 @@ export default function ArtifactView({ id }) {
     }, 250)
   }
 
-  const pct = c.total_xp ? (earned / c.total_xp) * 100 : 0
-
   return (
     <div>
       {toast && <div className="toast">{toast}</div>}
-      <p className="eyebrow">{art.kind === 'goal' ? `🎯 ${c.hero_class || 'Quest line'}` : '🏎️ Outing plan'}</p>
+      <p className="eyebrow">{art.kind === 'goal' ? '🎯 Quest' : '🏎️ Outing'}</p>
       <h1>{c.title}</h1>
-      <p className="lead">{c.intro}</p>
+      {c.intro && <p className="lead">{c.intro}</p>}
       <div className="xp-panel">
         <div className="stat-top">
           <b>{earned} / {c.total_xp} XP</b>
-          <span className="muted">{Math.round(pct)}% complete</span>
+          <span className="muted">{Math.round(pct)}%</span>
         </div>
         <Bar pct={pct} />
       </div>
@@ -82,10 +79,9 @@ function computeXp(kind, c, done) {
   return xp
 }
 
-const TYPE_ICON = { learn: '📘', practice: '🛠️', milestone: '🚩', boss: '🐉' }
-
 function GoalBoard({ c, done, toggle, pct }) {
   const firstOpen = c.levels.findIndex((l) => !l.quests.every((q) => done.includes(q.id)))
+  const budget = c.budget || c.budget_breakdown
   return (
     <div className="board">
       <div className="levels">
@@ -98,31 +94,24 @@ function GoalBoard({ c, done, toggle, pct }) {
             <section key={l.id} className={'level' + (cleared ? ' cleared' : '') + (i === firstOpen ? ' current' : '') + (locked ? ' locked' : '')}>
               <header>
                 <span className="level-num">{cleared ? '🏆' : locked ? '🔒' : '⚔️'}</span>
-                <div>
-                  <h3>{l.name}</h3>
-                  <p className="muted small">{l.description}</p>
-                </div>
+                <h3>{l.name}</h3>
                 <span className="level-count">{n}/{total}</span>
               </header>
               <div className="quests">
-                {l.quests.map((q) => (
-                  <div key={q.id} className={'quest' + (done.includes(q.id) ? ' done' : '')}>
-                    <Check checked={done.includes(q.id)} onChange={(on) => toggle(q.id, on)} xp={q.xp}>
-                      <b>{TYPE_ICON[q.type] || '•'} {q.title}</b>
-                      <span className="quest-desc">{q.description}</span>
-                      <span className="muted small">
-                        {q.est_time && <>⏱ {q.est_time}</>}
-                        {(q.resources || []).filter((r) => r.url).map((r) => (
-                          <a key={r.url} href={r.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                            {' '}· ↗ {r.title || r.url}
-                          </a>
-                        ))}
-                      </span>
-                    </Check>
-                  </div>
-                ))}
+                {l.quests.map((q) => {
+                  const url = q.url || q.resources?.find((r) => r.url)?.url
+                  const detail = q.detail || q.description
+                  return (
+                    <div key={q.id} className={'quest' + (done.includes(q.id) ? ' done' : '')}>
+                      <Check checked={done.includes(q.id)} onChange={(on) => toggle(q.id, on)} xp={q.xp}>
+                        <b>{q.title}</b>
+                        {detail && <span className="quest-desc">{detail}</span>}
+                      </Check>
+                      {url && <a className="quest-link" href={url} target="_blank" rel="noreferrer">↗ Link</a>}
+                    </div>
+                  )
+                })}
               </div>
-              {l.boss && <p className="boss">🐉 <b>Level boss:</b> {l.boss}</p>}
             </section>
           )
         })}
@@ -132,21 +121,18 @@ function GoalBoard({ c, done, toggle, pct }) {
         {c.achievements?.length > 0 && (
           <div className="card">
             <h4>Achievements</h4>
-            <p className="muted small">Unlock as you progress.</p>
             {c.achievements.map((a, i) => {
               const unlocked = i === 0 ? pct > 0 : pct >= ((i + 1) / c.achievements.length) * 100 - 0.01
               return (
                 <div key={i} className={'ach' + (unlocked ? ' on' : '')}>
                   <span>{unlocked ? a.icon || '🏅' : '🔒'}</span>
-                  <div><b>{a.name}</b><span className="muted small">{a.description}</span></div>
+                  <b>{a.name}</b>
                 </div>
               )
             })}
           </div>
         )}
-        {c.weekly_rhythm?.length > 0 && <ListCard title="Weekly rhythm" items={c.weekly_rhythm} />}
-        {c.budget_breakdown?.length > 0 && <BudgetCard rows={c.budget_breakdown} />}
-        {c.tips?.length > 0 && <ListCard title="Ember's tips" items={c.tips} />}
+        {budget?.length > 0 && <BudgetCard rows={budget} />}
       </aside>
     </div>
   )
@@ -158,16 +144,14 @@ function ActivityBoard({ c, done, toggle }) {
   return (
     <div className="board">
       <div className="levels">
-        {c.best_time && <p className="callout">🕒 <b>Best time:</b> {c.best_time}</p>}
-
         {c.venues?.length > 0 && (
           <section className="card">
-            <h3>Where to go</h3>
+            <h3>Where</h3>
             {c.venues.map((v, i) => (
               <div key={i} className="venue">
                 <b>{v.url ? <a href={v.url} target="_blank" rel="noreferrer">{v.name} ↗</a> : v.name}</b>
                 <span className="muted small">{[v.address, v.price].filter(Boolean).join(' · ')}</span>
-                {v.why && <p>{v.why}</p>}
+                {v.why && <span className="small">{v.why}</span>}
               </div>
             ))}
           </section>
@@ -175,12 +159,12 @@ function ActivityBoard({ c, done, toggle }) {
 
         {c.itinerary?.length > 0 && (
           <section className="card">
-            <h3>Itinerary</h3>
+            <h3>Plan</h3>
             <ol className="timeline">
               {c.itinerary.map((s, i) => (
                 <li key={i}>
                   <span className="time">{s.time}</span>
-                  <div><b>{s.title}</b><p>{s.details}</p></div>
+                  <b>{s.title}</b>
                 </li>
               ))}
             </ol>
@@ -197,36 +181,17 @@ function ActivityBoard({ c, done, toggle }) {
             ))}
           </section>
         ))}
-
-        {c.side_quests?.length > 0 && (
-          <section className="card">
-            <h3>🎲 Side quests</h3>
-            {c.side_quests.map((s) => (
-              <Check key={s.id} checked={done.includes(s.id)} onChange={(on) => toggle(s.id, on)} xp={s.xp}>
-                <span className="strike">{s.title}</span>
-              </Check>
-            ))}
-          </section>
-        )}
       </div>
 
       <aside className="side">
         {c.budget?.length > 0 && <BudgetCard rows={c.budget} total={c.budget_total} />}
-        {c.safety?.length > 0 && <ListCard title="⚠️ Safety" items={c.safety} />}
-        {c.group_tips?.length > 0 && <ListCard title="Group tips" items={c.group_tips} />}
-        {c.backup_plan && (
-          <div className="card"><h4>Backup plan</h4><p>{c.backup_plan}</p></div>
+        {c.safety?.length > 0 && (
+          <div className="card">
+            <h4>⚠️ Safety</h4>
+            <ul className="ticks">{c.safety.map((t, i) => <li key={i}>{t}</li>)}</ul>
+          </div>
         )}
       </aside>
-    </div>
-  )
-}
-
-function ListCard({ title, items }) {
-  return (
-    <div className="card">
-      <h4>{title}</h4>
-      <ul className="ticks">{items.map((t, i) => <li key={i}>{t}</li>)}</ul>
     </div>
   )
 }

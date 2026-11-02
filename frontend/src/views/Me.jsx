@@ -64,10 +64,10 @@ export default function Me() {
           <button className="btn primary">{saved ? 'Saved ✓' : 'Save profile'}</button>
         </form>
 
-        <h2 className="section-title">🧠 Ember's memory</h2>
-        <p className="muted">Everything Ember will draw on when planning. Delete anything that's wrong.</p>
+        <h2 className="section-title">🧠 Frontier's memory</h2>
+        <p className="muted">Everything Frontier will draw on when planning. Delete anything that's wrong.</p>
         <form className="inline-form" onSubmit={add}>
-          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Teach Ember something: “I can't drive after dark”" />
+          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Teach Frontier something: “I can't drive after dark”" />
           <button className="btn">Remember</button>
         </form>
         <ul className="memories">
@@ -82,9 +82,9 @@ export default function Me() {
       </div>
 
       <aside>
-        <p className="eyebrow">🔥 Ember</p>
-        <h2>Ember's soul</h2>
-        <p className="muted small">Loaded into every request. Edit <code>backend/soul.md</code> to change who Ember is.</p>
+        <p className="eyebrow">🔥 Frontier</p>
+        <h2>Frontier's soul</h2>
+        <p className="muted small">Loaded into every request. Edit <code>backend/soul.md</code> to change who Frontier is.</p>
         <pre className="soul">{soul?.soul || 'Loading…'}</pre>
       </aside>
     </div>

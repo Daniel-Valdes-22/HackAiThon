@@ -33,8 +33,9 @@ import db  # noqa: E402
 @asynccontextmanager
 async def lifespan(app):
     db.init()
+    db.execute("UPDATE memories SET text=replace(text,'Ember','Frontier') WHERE text LIKE '%Ember%'")
     if not db.query("SELECT id FROM memories LIMIT 1"):
-        db.add_memory("Ember was just born. Getting to know the user is the first quest.", kind="reflection", source="ember")
+        db.add_memory("Frontier was just born. Getting to know the user is the first quest.", kind="reflection", source="frontier")
     yield
 
 
@@ -233,7 +234,7 @@ def choose_plan(pid: int, bg: BackgroundTasks):
         title=plan["body"].get("title", "Your plan"), status="building",
         content={}, completed=[], created_at=time.time(),
     )
-    db.add_memory(ai.memory_for_choice(req["kind"], req["params"], plan["body"]), kind="event", source="ember")
+    db.add_memory(ai.memory_for_choice(req["kind"], req["params"], plan["body"]), kind="event", source="frontier")
     bg.add_task(build_artifact, aid)
     return db.one("SELECT * FROM artifacts WHERE id=?", (aid,))
 
@@ -278,9 +279,9 @@ def set_progress(aid: int, body: ProgressIn):
         for lvl in c.get("levels", []):
             ids = [q["id"] for q in lvl.get("quests", [])]
             if ids and all(i in after for i in ids) and not all(i in before for i in ids):
-                db.add_memory(f"Cleared '{lvl['name']}' in the quest '{a['title']}'.", kind="event", source="ember", weight=1.2)
+                db.add_memory(f"Cleared '{lvl['name']}' in the quest '{a['title']}'.", kind="event", source="frontier", weight=1.2)
     elif c.get("checklist") and all(i["id"] in after for i in c["checklist"]) and not all(i["id"] in before for i in c["checklist"]):
-        db.add_memory(f"Finished all prep for '{a['title']}'.", kind="event", source="ember")
+        db.add_memory(f"Finished all prep for '{a['title']}'.", kind="event", source="frontier")
     return {"completed": after, "xp_earned": xp}
 
 
